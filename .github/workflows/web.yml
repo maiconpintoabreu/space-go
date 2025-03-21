@@ -35,7 +35,9 @@ jobs:
         env GOOS=js GOARCH=wasm go build -o ../${{ env.PROJECT_BUILD_PATH }}/space-go.wasm github.com/maiconspas/space-go
 
     - name: Test
-      run: go test -v ./...
+      run: |
+        cd src
+        go test .
     
     - name: Generate Artifacts
       run: |
