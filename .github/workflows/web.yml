@@ -1,0 +1,69 @@
+name: Web
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - '.github/workflows/web.yml'
+    
+permissions:
+  contents: read
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+      PROJECT_NAME: space-go
+      PROJECT_BUILD_PATH: build
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.1'
+
+    - name: Build
+      run: |
+        cd src
+        cp index.html ../${{ env.PROJECT_BUILD_PATH }}/
+        cp wasm_exec.js ../${{ env.PROJECT_BUILD_PATH }}/
+        env GOOS=js GOARCH=wasm go build -o ../${{ env.PROJECT_BUILD_PATH }}/space-go.wasm github.com/maiconspas/space-go
+
+    - name: Test
+      run: go test -v ./...
+    
+    - name: Generate Artifacts
+      run: |
+        cp README.md ${{ env.PROJECT_BUILD_PATH }}
+        cp LICENSE ${{ env.PROJECT_BUILD_PATH }}
+        ls ${{ env.PROJECT_BUILD_PATH }}
+        7z a ./${{ env.PROJECT_NAME }}.zip ./${{ env.PROJECT_BUILD_PATH }}
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PROJECT_NAME }}.zip
+        path: ./${{ env.PROJECT_NAME }}.zip
+
+    - name: Download + Authorize Butler
+      run: |
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+
+    - name: Login To Butler
+      run: ./butler login
+
+    - name: Push Web to Itch
+      run: ./butler push ${{ env.PROJECT_BUILD_PATH }} maiconspas/space-go:web
