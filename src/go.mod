@@ -1,4 +1,4 @@
-module github.com/maiconspas/space-go
+module github.com/maiconpintoabreu/space-go
 
 go 1.24.1
 

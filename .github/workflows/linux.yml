@@ -1,10 +1,10 @@
-name: Web
+name: Linux
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/web.yml' # Only if triggered manually or change the cd file
+      - '.github/workflows/linux.yml' # Only if triggered manually or change the cd file
     
 permissions:
   contents: read
@@ -29,9 +29,7 @@ jobs:
     - name: Build
       run: |
         cd src
-        cp index.html ../${{ env.PROJECT_BUILD_PATH }}/
-        cp wasm_exec.js ../${{ env.PROJECT_BUILD_PATH }}/
-        env GOOS=js GOARCH=wasm go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go.wasm github.com/maiconpintoabreu/space-go
+        env GOOS=linux go build -ldflags "-s -w"  -o ../${{ env.PROJECT_BUILD_PATH }}/space-go.exe github.com/maiconpintoabreu/space-go
     
     - name: Generate Artifacts
       run: |
@@ -56,5 +54,5 @@ jobs:
     - name: Login To Butler
       run: ./butler login
 
-    - name: Push Web to Itch
-      run: ./butler push ${{ env.PROJECT_BUILD_PATH }} maiconspas/space-go:web
+    - name: Push Windows to Itch
+      run: ./butler push ${{ env.PROJECT_BUILD_PATH }} maiconspas/space-go:windows
