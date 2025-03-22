@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [{name:"web", extention:".wasm"}, {name:"windows", extention:".exe"}, {name:"linux", extention:""}]
+        configs: [{name:"web", extention:".wasm"}, {name:"windows", extention:".exe"}, {name:"linux", extention:""}]
     permissions:
       contents: write
     env:
@@ -33,7 +33,7 @@ jobs:
     - name: Build
       run: |
         cd src
-        env GOOS=${{ matrix.os.name }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.os.extention }} github.com/maiconpintoabreu/space-go
+        env GOOS=${{ matrix.configs.name }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extention }} github.com/maiconpintoabreu/space-go
     
     - name: Generate Artifacts
       run: |
@@ -59,4 +59,4 @@ jobs:
       run: ./butler login
 
     - name: Push to Itch
-      run: ./butler push ${{ env.PROJECT_BUILD_PATH }} maiconspas/space-go:${{ matrix.os.name }}
+      run: ./butler push ${{ env.PROJECT_BUILD_PATH }} maiconspas/space-go:${{ matrix.configs.name }}
