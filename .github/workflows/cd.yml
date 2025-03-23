@@ -15,9 +15,9 @@ jobs:
     strategy:
       matrix:
         configs:
-          - { name: "web", extension: ".wasm", goarch: "GOARCH=wasm" }
-          - { name: "windows", extension: ".exe", goarch: "" }
-          - { name: "linux", extension: "", goarch: "" }
+          - { name: "web", extension: ".wasm", goarch: "GOARCH=wasm", goos: "GOOS=js" }
+          - { name: "windows", extension: ".exe", goarch: "", goos: "GOOS=windows" }
+          - { name: "linux", extension: "", goarch: "", goos: "GOOS=linux" }
     permissions:
       contents: write
     env:
@@ -36,7 +36,7 @@ jobs:
     - name: Build
       run: |
         cd src
-        env GOOS=${{ matrix.configs.name }} ${{ matrix.configs.goarch }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extention }} github.com/maiconpintoabreu/space-go
+        env ${{ matrix.configs.goos }} ${{ matrix.configs.goarch }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extention }} github.com/maiconpintoabreu/space-go
     
     - name: Generate Artifacts
       run: |
