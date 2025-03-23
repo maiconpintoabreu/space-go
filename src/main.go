@@ -18,36 +18,47 @@ type Vector2 struct {
 	X float64
 	Y float64
 }
-
-type Player struct {
-	position        Vector2
-	top_point       Vector2
-	left_point      Vector2
-	right_point     Vector2
-	speed           Vector2
-	rotation        float64
-	acceleration    float64
-	is_turn_left    bool
-	is_turn_right   bool
-	is_accelerating bool
-	is_breaking     bool
-}
-type Game struct {
-	player                    Player
-	keys                      []ebiten.Key
-	width                     int32
-	height                    int32
-	fwidth                    float64
-	fheight                   float64
-	halfWidth                 float64
-	halfHeight                float64
-	frame_time_accumulator    float64
-	is_player_rotation_change bool
-}
+type GameState int
 
 const (
-	screenWidth                   = 640
-	screenHeight                  = 360
+	StateStartMenu GameState = iota
+	StateInGame
+	StateGameOver
+)
+
+type Player struct {
+	position       Vector2
+	topPoint       Vector2
+	leftPoint      Vector2
+	rightPoint     Vector2
+	speed          Vector2
+	rotation       float64
+	acceleration   float64
+	isTurnLeft     bool
+	isTurnRight    bool
+	isAccelerating bool
+	isBreaking     bool
+}
+type Game struct {
+	player                 Player
+	keys                   []ebiten.Key
+	width                  int32
+	height                 int32
+	fwidth                 float64
+	fheight                float64
+	halfWidth              float64
+	halfHeight             float64
+	frameTimeAccumulator   float64
+	isPlayerRotationChange bool
+	state                  GameState
+}
+
+var (
+	screenWidth  int = 640
+	screenHeight int = 360
+)
+
+const (
 	PLAYER_SPEED          float64 = 100.0
 	PLAYER_ROTATION_SPEED float64 = 100.0
 	SHIP_HALF_HEIGHT      float64 = 5.0 / 0.363970
@@ -75,40 +86,40 @@ func (game *Game) Update() error {
 
 	// Input
 	game.keys = inpututil.AppendPressedKeys(game.keys[:0])
-	game.player.is_turn_left = false
-	game.player.is_turn_right = false
-	game.player.is_accelerating = false
-	game.player.is_breaking = false
+	game.player.isTurnLeft = false
+	game.player.isTurnRight = false
+	game.player.isAccelerating = false
+	game.player.isBreaking = false
 	for _, key := range game.keys {
 		if key == ebiten.KeyLeft {
-			game.player.is_turn_left = true
-			game.is_player_rotation_change = true
+			game.player.isTurnLeft = true
+			game.isPlayerRotationChange = true
 		} else if key == ebiten.KeyRight {
-			game.player.is_turn_right = true
-			game.is_player_rotation_change = true
+			game.player.isTurnRight = true
+			game.isPlayerRotationChange = true
 		} else if key == ebiten.KeyUp {
-			game.player.is_accelerating = true
+			game.player.isAccelerating = true
 		} else if key == ebiten.KeyDown {
-			game.player.is_breaking = true
+			game.player.isBreaking = true
 		}
 	}
 
 	// Physics
 
 	if true {
-		game.frame_time_accumulator -= PHYSICS_TIME
+		game.frameTimeAccumulator = 0 //TODO: Reduce times that physics runs -= PHYSICS_TIME
 
 		var rotation_speed float64 = PLAYER_ROTATION_SPEED * PHYSICS_TIME
 		var acceleration float64 = PLAYER_SPEED * PHYSICS_TIME
 
-		if game.player.is_turn_left {
+		if game.player.isTurnLeft {
 			game.player.rotation -= rotation_speed
-		} else if game.player.is_turn_right {
+		} else if game.player.isTurnRight {
 			game.player.rotation += rotation_speed
 		}
 
-		if game.is_player_rotation_change {
-			game.is_player_rotation_change = false
+		if game.isPlayerRotationChange {
+			game.isPlayerRotationChange = false
 			if game.player.rotation > 180.0 {
 				game.player.rotation -= 360.0
 			}
@@ -116,8 +127,8 @@ func (game *Game) Update() error {
 				game.player.rotation += 360.0
 			}
 		}
-		if game.player.is_accelerating {
-			game.player.is_accelerating = true
+		if game.player.isAccelerating {
+			game.player.isAccelerating = true
 			if game.player.acceleration < PLAYER_SPEED {
 				game.player.acceleration += acceleration
 			}
@@ -126,7 +137,7 @@ func (game *Game) Update() error {
 		} else if game.player.acceleration < ZERO_SPEED {
 			game.player.acceleration = ZERO_SPEED
 		}
-		if game.player.is_breaking {
+		if game.player.isBreaking {
 			if game.player.acceleration > ZERO_SPEED {
 				game.player.acceleration -= acceleration
 			} else if game.player.acceleration < ZERO_SPEED {
@@ -161,53 +172,60 @@ func (game *Game) Update() error {
 
 func (game *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.White)
-	// Draw UI
-	player_speed := fmt.Sprint("Speed: ", game.player.acceleration)
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(20, 12)
-	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, player_speed, &text.GoTextFace{
-		Source: textFaceSource,
-		Size:   TITLE_FONT_SIZE,
-	}, op)
-	fps := fmt.Sprint("FPS: ", math.Round(ebiten.ActualFPS()))
+	switch game.state {
+	case StateInGame:
+		// Draw In Game UI
+		player_speed := fmt.Sprint("Speed: ", game.player.acceleration)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(20, 12)
+		op.ColorScale.ScaleWithColor(color.Black)
+		text.Draw(screen, player_speed, &text.GoTextFace{
+			Source: textFaceSource,
+			Size:   TITLE_FONT_SIZE,
+		}, op)
+		fps := fmt.Sprint("FPS: ", math.Round(ebiten.ActualFPS()))
 
-	op = &text.DrawOptions{}
-	op.GeoM.Translate(float64(game.width)-100, 12)
-	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, fps, &text.GoTextFace{
-		Source: textFaceSource,
-		Size:   TITLE_FONT_SIZE,
-	}, op)
+		op = &text.DrawOptions{}
+		op.GeoM.Translate(float64(game.width)-100, 12)
+		op.ColorScale.ScaleWithColor(color.Black)
+		text.Draw(screen, fps, &text.GoTextFace{
+			Source: textFaceSource,
+			Size:   TITLE_FONT_SIZE,
+		}, op)
 
-	var cosf float64 = math.Cos(game.player.rotation * DEG2RAD)
-	var sinf float64 = math.Sin(game.player.rotation * DEG2RAD)
-	game.player.top_point = Vector2{
-		X: game.player.position.X + sinf*SHIP_HALF_HEIGHT,
-		Y: game.player.position.Y - cosf*SHIP_HALF_HEIGHT,
+		var cosf float64 = math.Cos(game.player.rotation * DEG2RAD)
+		var sinf float64 = math.Sin(game.player.rotation * DEG2RAD)
+		game.player.topPoint = Vector2{
+			X: game.player.position.X + sinf*SHIP_HALF_HEIGHT,
+			Y: game.player.position.Y - cosf*SHIP_HALF_HEIGHT,
+		}
+		// Temp vector to center the rotation
+		v1tmp := Vector2{
+			X: game.player.position.X - sinf*SHIP_HALF_HEIGHT,
+			Y: game.player.position.Y + cosf*SHIP_HALF_HEIGHT,
+		}
+		game.player.rightPoint = Vector2{
+			X: v1tmp.X - cosf*(SHIP_HALF_HEIGHT-2.0),
+			Y: v1tmp.Y - sinf*(SHIP_HALF_HEIGHT-2.0),
+		}
+		game.player.leftPoint = Vector2{
+			X: v1tmp.X + cosf*(SHIP_HALF_HEIGHT-2.0),
+			Y: v1tmp.Y + sinf*(SHIP_HALF_HEIGHT-2.0),
+		}
+		vector.StrokeLine(screen, float32(game.player.topPoint.X), float32(game.player.topPoint.Y), float32(game.player.rightPoint.X), float32(game.player.rightPoint.Y), 1, color.Gray{}, false)
+		vector.StrokeLine(screen, float32(game.player.rightPoint.X), float32(game.player.rightPoint.Y), float32(game.player.leftPoint.X), float32(game.player.leftPoint.Y), 1, color.Gray{}, false)
+		vector.StrokeLine(screen, float32(game.player.leftPoint.X), float32(game.player.leftPoint.Y), float32(game.player.topPoint.X), float32(game.player.topPoint.Y), 1, color.Gray{}, false)
+
+	case StateStartMenu:
+
+	case StateGameOver:
 	}
-	// Temp vector to center the rotation
-	v1tmp := Vector2{
-		X: game.player.position.X - sinf*SHIP_HALF_HEIGHT,
-		Y: game.player.position.Y + cosf*SHIP_HALF_HEIGHT,
-	}
-	game.player.right_point = Vector2{
-		X: v1tmp.X - cosf*(SHIP_HALF_HEIGHT-2.0),
-		Y: v1tmp.Y - sinf*(SHIP_HALF_HEIGHT-2.0),
-	}
-	game.player.left_point = Vector2{
-		X: v1tmp.X + cosf*(SHIP_HALF_HEIGHT-2.0),
-		Y: v1tmp.Y + sinf*(SHIP_HALF_HEIGHT-2.0),
-	}
-	vector.StrokeLine(screen, float32(game.player.top_point.X), float32(game.player.top_point.Y), float32(game.player.right_point.X), float32(game.player.right_point.Y), 1, color.Gray{}, false)
-	vector.StrokeLine(screen, float32(game.player.right_point.X), float32(game.player.right_point.Y), float32(game.player.left_point.X), float32(game.player.left_point.Y), 1, color.Gray{}, false)
-	vector.StrokeLine(screen, float32(game.player.left_point.X), float32(game.player.left_point.Y), float32(game.player.top_point.X), float32(game.player.top_point.Y), 1, color.Gray{}, false)
 
 	// Draw Game
 	// screen.DrawTriangle(
-	// 	game.player.top_point,
-	// 	game.player.right_point,
-	// 	game.player.left_point,
+	// 	game.player.topPoint,
+	// 	game.player.rightPoint,
+	// 	game.player.leftPoint,
 	// 	Gray,
 	// )
 }
@@ -221,8 +239,8 @@ func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Space Go")
 
-	game.width = screenWidth
-	game.height = screenHeight
+	game.width = int32(screenWidth)
+	game.height = int32(screenHeight)
 	game.fwidth = float64(game.width)
 	game.fheight = float64(game.height)
 	game.halfWidth = game.fwidth / 2.0
@@ -230,9 +248,11 @@ func main() {
 
 	game.player.position = Vector2{X: game.halfWidth, Y: game.halfHeight - (SHIP_HALF_HEIGHT / 2.0)}
 	game.player.acceleration = 0.0
-	game.frame_time_accumulator = 0.0
+	game.frameTimeAccumulator = 0.0
 
-	game.is_player_rotation_change = false
+	game.isPlayerRotationChange = false
+
+	game.state = StateInGame //TODO: Start the game with Start Menu StateStartMenu
 
 	if err := ebiten.RunGame(&game); err != nil {
 		log.Fatal(err)
