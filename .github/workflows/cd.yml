@@ -17,7 +17,7 @@ jobs:
         configs:
           - { name: "web", extension: ".wasm", goarch: "GOARCH=wasm", goos: "GOOS=js" }
           - { name: "windows", extension: ".exe", goarch: "", goos: "GOOS=windows" }
-          - { name: "linux", extension: "", goarch: "", goos: "GOOS=linux" }
+          - { name: "linux", extension: "", goarch: "", goos: "" }
     permissions:
       contents: write
     env:
