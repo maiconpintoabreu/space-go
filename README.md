@@ -26,9 +26,7 @@ All builds will be avaliable to download as artifacts inside the GitAction CD
 Not defined yet
 
 ## Links used for this build
+* To build for Windows: [Ebiten Guide Windows](https://ebitengine.org/en/documents/install.html?os=windows)
+* To build for Linux: [Ebiten Guide Linux](https://ebitengine.org/en/documents/install.html?os=linux)
+* To build for Web: [Ebiten Guide Web](https://ebitengine.org/en/documents/webassembly.html)
 
-### To build for Android
-[Ebiten Guide](https://ebitengine.org/en/documents/mobile.html)
-
-[Install Android SDK](https://gist.github.com/steveclarke/d988d89e8cdf51a8a5766d69ecb07e7b)
-* Extra command to install ndk: `sdkmanager ndk-bundle`
