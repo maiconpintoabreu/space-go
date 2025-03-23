@@ -14,7 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        configs: [{name:"web", extention:".wasm"}, {name:"windows", extention:".exe"}, {name:"linux", extention:""}]
+        configs:
+          - { name: "web", extension: ".wasm" }
+          - { name: "windows", extension: ".exe" }
+          - { name: "linux", extension: "" }
     permissions:
       contents: write
     env:
