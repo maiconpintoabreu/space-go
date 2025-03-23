@@ -37,9 +37,17 @@ jobs:
         sudo apt-get update -qq
         sudo apt install -y --no-install-recommends libc6-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
 
+    - name: Copy Web Dependencies
+      if: matrix.configs.name == 'web'
+      run: |
+        cd src
+        cp index.html ../${{ env.PROJECT_BUILD_PATH }}/
+        cp wasm_exec.js ../${{ env.PROJECT_BUILD_PATH }}/
+
     - name: Build
       run: |
         cd src
+
         env ${{ matrix.configs.goos }} ${{ matrix.configs.goarch }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extention }} github.com/maiconpintoabreu/space-go
     
     - name: Generate Artifacts
