@@ -48,7 +48,7 @@ jobs:
       run: |
         cd src
 
-        env ${{ matrix.configs.goos }} ${{ matrix.configs.goarch }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extention }} github.com/maiconpintoabreu/space-go
+        env ${{ matrix.configs.goos }} ${{ matrix.configs.goarch }} go build -ldflags "-s -w" -o ../${{ env.PROJECT_BUILD_PATH }}/space-go${{ matrix.configs.extension }} github.com/maiconpintoabreu/space-go
     
     - name: Generate Artifacts
       run: |
