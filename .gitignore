@@ -25,3 +25,4 @@ go.work.sum
 .env
 build/**
 !build/.gitkeep
+src/mobile/android/app/release/
