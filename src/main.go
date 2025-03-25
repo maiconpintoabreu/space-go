@@ -9,9 +9,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+)
+
+var (
+	menuItemImage *ebiten.Image
 )
 
 type Vector2 struct {
@@ -41,7 +44,6 @@ type Player struct {
 }
 type Game struct {
 	player                 Player
-	keys                   []ebiten.Key
 	width                  int32
 	height                 int32
 	fwidth                 float64
@@ -56,6 +58,8 @@ type Game struct {
 var (
 	screenWidth  int = 640
 	screenHeight int = 360
+	mouseX       int = 0
+	mouseY       int = 0
 )
 
 const (
@@ -80,90 +84,118 @@ func init() {
 	}
 	textFaceSource = s
 }
+
+func init() {
+	menuItemImage = ebiten.NewImage(100, 40)
+	menuItemImage.Fill(color.RGBA{R: 200, G: 200, B: 200, A: 255})
+}
+
 func (game *Game) Update() error {
 
 	// Tick
 
-	// Input
-	game.keys = inpututil.AppendPressedKeys(game.keys[:0])
-	game.player.isTurnLeft = false
-	game.player.isTurnRight = false
-	game.player.isAccelerating = false
-	game.player.isBreaking = false
-	for _, key := range game.keys {
-		if key == ebiten.KeyLeft {
+	switch game.state {
+	case StateInGame:
+		// Input
+		if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 			game.player.isTurnLeft = true
 			game.isPlayerRotationChange = true
-		} else if key == ebiten.KeyRight {
+		} else {
+			game.player.isTurnLeft = false
+		}
+		if ebiten.IsKeyPressed(ebiten.KeyRight) {
 			game.player.isTurnRight = true
 			game.isPlayerRotationChange = true
-		} else if key == ebiten.KeyUp {
+		} else {
+			game.player.isTurnRight = false
+		}
+
+		if ebiten.IsKeyPressed(ebiten.KeyUp) {
 			game.player.isAccelerating = true
-		} else if key == ebiten.KeyDown {
+		} else {
+			game.player.isAccelerating = false
+		}
+
+		if ebiten.IsKeyPressed(ebiten.KeyDown) {
 			game.player.isBreaking = true
-		}
-	}
-
-	// Physics
-
-	if true {
-		game.frameTimeAccumulator = 0 //TODO: Reduce times that physics runs -= PHYSICS_TIME
-
-		var rotation_speed float64 = PLAYER_ROTATION_SPEED * PHYSICS_TIME
-		var acceleration float64 = PLAYER_SPEED * PHYSICS_TIME
-
-		if game.player.isTurnLeft {
-			game.player.rotation -= rotation_speed
-		} else if game.player.isTurnRight {
-			game.player.rotation += rotation_speed
+		} else {
+			game.player.isBreaking = false
 		}
 
-		if game.isPlayerRotationChange {
-			game.isPlayerRotationChange = false
-			if game.player.rotation > 180.0 {
-				game.player.rotation -= 360.0
+		// Physics
+
+		if true {
+			game.frameTimeAccumulator = 0 //TODO: Reduce times that physics runs -= PHYSICS_TIME
+
+			var rotation_speed float64 = PLAYER_ROTATION_SPEED * PHYSICS_TIME
+			var acceleration float64 = PLAYER_SPEED * PHYSICS_TIME
+
+			if game.player.isTurnLeft {
+				game.player.rotation -= rotation_speed
+			} else if game.player.isTurnRight {
+				game.player.rotation += rotation_speed
 			}
-			if game.player.rotation < -180.0 {
-				game.player.rotation += 360.0
+
+			if game.isPlayerRotationChange {
+				game.isPlayerRotationChange = false
+				if game.player.rotation > 180.0 {
+					game.player.rotation -= 360.0
+				}
+				if game.player.rotation < -180.0 {
+					game.player.rotation += 360.0
+				}
 			}
-		}
-		if game.player.isAccelerating {
-			game.player.isAccelerating = true
-			if game.player.acceleration < PLAYER_SPEED {
-				game.player.acceleration += acceleration
-			}
-		} else if game.player.acceleration > ZERO_SPEED {
-			game.player.acceleration -= acceleration / 2.0
-		} else if game.player.acceleration < ZERO_SPEED {
-			game.player.acceleration = ZERO_SPEED
-		}
-		if game.player.isBreaking {
-			if game.player.acceleration > ZERO_SPEED {
-				game.player.acceleration -= acceleration
+			if game.player.isAccelerating {
+				game.player.isAccelerating = true
+				if game.player.acceleration < PLAYER_SPEED {
+					game.player.acceleration += acceleration
+				}
+			} else if game.player.acceleration > ZERO_SPEED {
+				game.player.acceleration -= acceleration / 2.0
 			} else if game.player.acceleration < ZERO_SPEED {
 				game.player.acceleration = ZERO_SPEED
 			}
-		}
-
-		direction := Vector2{
-			X: float64(math.Sin(game.player.rotation * DEG2RAD)),
-			Y: float64(-math.Cos(game.player.rotation * DEG2RAD)),
-		}
-		norm_vector := Vector2Normalize(&direction)
-		game.player.speed = Vector2Scale(&norm_vector, game.player.acceleration*PHYSICS_TIME)
-		game.player.position = Vector2Add(&game.player.position, &game.player.speed)
-		// Update Triangle Rotation
-		if Vector2Length(&game.player.speed) > 0.0 {
-			if game.player.position.X > game.fwidth+SHIP_HALF_HEIGHT {
-				game.player.position.X = -SHIP_HALF_HEIGHT
-			} else if game.player.position.X < -SHIP_HALF_HEIGHT {
-				game.player.position.X = game.fwidth + SHIP_HALF_HEIGHT
+			if game.player.isBreaking {
+				if game.player.acceleration > ZERO_SPEED {
+					game.player.acceleration -= acceleration
+				} else if game.player.acceleration < ZERO_SPEED {
+					game.player.acceleration = ZERO_SPEED
+				}
 			}
 
-			if game.player.position.Y > game.fheight+SHIP_HALF_HEIGHT {
-				game.player.position.Y = -SHIP_HALF_HEIGHT
-			} else if game.player.position.Y < -SHIP_HALF_HEIGHT {
-				game.player.position.Y = game.fheight + SHIP_HALF_HEIGHT
+			direction := Vector2{
+				X: float64(math.Sin(game.player.rotation * DEG2RAD)),
+				Y: float64(-math.Cos(game.player.rotation * DEG2RAD)),
+			}
+			norm_vector := Vector2Normalize(&direction)
+			game.player.speed = Vector2Scale(&norm_vector, game.player.acceleration*PHYSICS_TIME)
+			game.player.position = Vector2Add(&game.player.position, &game.player.speed)
+			// Update Triangle Rotation
+			if Vector2Length(&game.player.speed) > 0.0 {
+				if game.player.position.X > game.fwidth+SHIP_HALF_HEIGHT {
+					game.player.position.X = -SHIP_HALF_HEIGHT
+				} else if game.player.position.X < -SHIP_HALF_HEIGHT {
+					game.player.position.X = game.fwidth + SHIP_HALF_HEIGHT
+				}
+
+				if game.player.position.Y > game.fheight+SHIP_HALF_HEIGHT {
+					game.player.position.Y = -SHIP_HALF_HEIGHT
+				} else if game.player.position.Y < -SHIP_HALF_HEIGHT {
+					game.player.position.Y = game.fheight + SHIP_HALF_HEIGHT
+				}
+			}
+		}
+	default:
+
+		mouseX, mouseY = ebiten.CursorPosition()
+		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+			if mouseX >= int(game.halfWidth)-50 && mouseX <= int(game.halfWidth+50) {
+				if mouseY >= int(game.halfHeight)-50 && mouseY <= int(game.halfHeight) {
+					game.state = StateInGame
+				}
+				if mouseY <= int(game.halfHeight)+50 && mouseY >= int(game.halfHeight)+10 {
+					return ebiten.Termination
+				}
 			}
 		}
 	}
@@ -217,17 +249,31 @@ func (game *Game) Draw(screen *ebiten.Image) {
 		vector.StrokeLine(screen, float32(game.player.leftPoint.X), float32(game.player.leftPoint.Y), float32(game.player.topPoint.X), float32(game.player.topPoint.Y), 1, color.Gray{}, false)
 
 	case StateStartMenu:
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(game.halfWidth-50, game.halfHeight-50)
+		screen.DrawImage(menuItemImage, op)
 
+		opText := &text.DrawOptions{}
+		opText.GeoM.Translate(game.halfWidth-50, game.halfHeight-35)
+		opText.ColorScale.ScaleWithColor(color.Black)
+		text.Draw(screen, "Start Game", &text.GoTextFace{
+			Source: textFaceSource,
+			Size:   TITLE_FONT_SIZE,
+		}, opText)
+
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(game.halfWidth-50, game.halfHeight+10)
+		screen.DrawImage(menuItemImage, op)
+
+		opText = &text.DrawOptions{}
+		opText.GeoM.Translate(game.halfWidth-46, game.halfHeight+25)
+		opText.ColorScale.ScaleWithColor(color.Black)
+		text.Draw(screen, "Quit Game", &text.GoTextFace{
+			Source: textFaceSource,
+			Size:   TITLE_FONT_SIZE,
+		}, opText)
 	case StateGameOver:
 	}
-
-	// Draw Game
-	// screen.DrawTriangle(
-	// 	game.player.topPoint,
-	// 	game.player.rightPoint,
-	// 	game.player.leftPoint,
-	// 	Gray,
-	// )
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -252,12 +298,11 @@ func main() {
 
 	game.isPlayerRotationChange = false
 
-	game.state = StateInGame //TODO: Start the game with Start Menu StateStartMenu
+	game.state = StateStartMenu //StateInGame //TODO: Start the game with Start Menu StateStartMenu
 
 	if err := ebiten.RunGame(&game); err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func Vector2Length(v *Vector2) float64 {
@@ -273,9 +318,11 @@ func Vector2Normalize(v *Vector2) Vector2 {
 
 	return Vector2{}
 }
+
 func Vector2Scale(v *Vector2, scale float64) Vector2 {
 	return Vector2{v.X * scale, v.Y * scale}
 }
+
 func Vector2Add(v1 *Vector2, v2 *Vector2) Vector2 {
 	return Vector2{v1.X + v2.X, v1.Y + v2.Y}
 }
